@@ -31,10 +31,15 @@ try:  # 开始try块
         writer.writerow(['排名', '城市', '年份', '指标', '数值'])
 
         # 遍历2010年到2020年
-        for year in range(2010, 2021):
+        for year in range(2018, 2021):
             # 定位年份下拉菜单并选择年份
             select_year = Select(wait.until(EC.element_to_be_clickable((By.ID, 'yearList'))))
             select_year.select_by_value(str(year))
+            # 定位指标类型下拉菜单
+            select_zhibiaotype = Select(wait.until(EC.element_to_be_clickable((By.ID, 'zhibiaotype'))))
+            # 选择指标类型（这里以选择第一个选项为例，根据您的需求选择合适的值）
+            select_zhibiaotype.select_by_value("3")  # 网页显示人均的value是1，单位GDP的value是3
+            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Zhibiao type selected.")
             # 定位城市下拉菜单
             select_element = Select(driver.find_element(By.ID, "citytype"))
             # 选择城市（value="0"对应“城市”）
@@ -48,8 +53,6 @@ try:  # 开始try块
 
             # 等待页面加载完成
             wait.until(EC.presence_of_element_located((By.ID, 'idpage')))
-            # 获取下一页按钮
-            next_page = driver.find_element(By.CSS_SELECTOR, 'i.icon-arrow-right-active')
 
             # 翻页操作开始之前保存屏幕截图
             driver.save_screenshot(f'screenshot_before_paging_{year}.png')
@@ -59,6 +62,7 @@ try:  # 开始try块
             while True:  # 改为无限循环，直到没有下一页为止
                 # 等待新页面的表格加载
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'table.table-list > tbody > tr')))
+
                 rows = driver.find_elements(By.CSS_SELECTOR, 'table.table-list > tbody > tr')
                 for row in rows:
                     try:
@@ -74,7 +78,9 @@ try:  # 开始try块
                         # 可以在这里添加代码重新定位元素或者刷新页面等恢复操作
 
                 try:
-                    #重新定位下一页按钮
+                    WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, 'i.icon-arrow-right-active')))
+                    #定位下一页按钮
                     next_page = driver.find_element(By.CSS_SELECTOR, 'i.icon-arrow-right-active')
                     # 检查是否含有'disabled'类
                     if 'disabled' in next_page.get_attribute('class'):
@@ -84,7 +90,8 @@ try:  # 开始try块
                         # 点击下一页之前保存屏幕截图
                         driver.save_screenshot(f'screenshot_before_clicking_next_{page_number}.png')
                         # 点击下一页
-                        next_page.click()
+                        driver.execute_script("arguments[0].click();", next_page)
+                        time.sleep(3)  # 增加的隐式等待时间
                         # 翻页后保存屏幕截图
                         driver.save_screenshot(f'screenshot_after_clicking_next_{page_number}.png')
                         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Moved to the next page: {page_number + 1}.")
@@ -113,4 +120,5 @@ try:  # 开始try块
 finally:
     # 最后不管发生什么都关闭WebDriver
     driver.quit()
+
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - WebDriver closed.")
